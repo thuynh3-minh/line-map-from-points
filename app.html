@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Export KMZ Features to CSV</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAk8G58hc5L9omEqnzjvQ87xMM4a1XGUC4&callback=initMap" async defer></script>
+</head>
+<body>
+    <div id="map" style="height: 800px; width: 100%;"></div>
+    <button id="exportButton">Export to CSV</button>
+
+    <script>
+        let map;
+        let featureCoordinates = [];
+
+
+        function initMap() {
+            const points = [
+                { name: "point1", lat: 18.3127873143734, lng: -66.540062489463 }, // New York City
+                { name: "point2", lat: 18.127873143734, lng: -66.540062489463 }, // Los Angeles
+                { name: "point3", lat: 18.0, lng: 18.3127873143734}, // Chicago
+                // Add more points as needed
+            ];
+
+            // Function to fetch and merge JSON data into the 'points' array
+            function fetchAndMergeData() {
+                fetch('substation_30kv_match.json') // Replace with the correct path to your JSON file
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // At this point, 'data' is an array of objects with 'name', 'lat', and 'long' properties
+                        // Merge 'data' into the 'points' array using the 'concat' method
+                        const updatedPoints = points.concat(data);
+                        console.log(updatedPoints); // Optional: Log the updated array
+                    })
+                    .catch(error => console.error('Error fetching or merging data:', error));
+            }
+
+            // Call the fetchAndMergeData function when needed (e.g., when the page loads)
+            fetchAndMergeData();
+
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 18.3127873143734, lng: -66.540062489463 },
+                zoom: 10,
+            });
+
+            // Loop through the array of points and add markers
+            for (const point of points) {
+                const marker = new google.maps.Marker({
+                    position: point,
+                    map: map,
+                    title: `Point: ${point.name}`
+                });
+            }
+
+            // Load your KMZ file
+            // const kmzLayer = new google.maps.KmlLayer({
+            //     url: 'C:\Users\Minh.huynh\Downloads\l.kmz', // Replace with your KMZ file URL
+            //     map: map,
+            // });
+
+            // Add a click event listener to the map
+            google.maps.event.addListener(map, 'click', function(event) {
+                collectCoordinates(event.latLng);
+            });
+        }
+
+        function collectCoordinates(latLng) {
+            featureCoordinates.push([latLng.lat(), latLng.lng()]);
+        }
+
+
+        document.getElementById("exportButton").addEventListener("click", function() {
+            exportToCSV(featureCoordinates, 'kmz_coordinates.csv');
+        });
+
+        function exportToCSV(data, filename) {
+            const csvContent = "data:text/csv;charset=utf-8," + data.map(row => row.join(',')).join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename || "kmz_coordinates.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
